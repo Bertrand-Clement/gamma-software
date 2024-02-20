@@ -1,0 +1,16 @@
+<tr>
+    <td>{{ band.id }}</td>
+    <td>{{ band.name }}</td>
+    <td>{{ band.origin }}</td>
+    <td>{{ band.city }}</td>
+    <td>{{ band.startYear }}</td>
+    <td>{{ band.separationYear }}</td>
+    <td>{{ band.founders }}</td>
+    <td>{{ band.members }}</td>
+    <td>{{ band.musicalStyle }}</td>
+    <td>{{ band.introduction }}</td>
+    <td>
+        <a href="{{ path('app_band_edit', {'id': band.id}) }}"><i class="bi-pencil"></i></a>
+        <a href="{{ path('app_band_delete', {'id': band.id}) }}" data-confirm-message="Êtes vous sur de vouloir supprimer ce groupe ?"><i class="bi-trash"></i></a>
+    </td>
+</tr>

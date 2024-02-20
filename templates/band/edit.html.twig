@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+{% form_theme form 'bootstrap_5_horizontal_layout.html.twig' %}
+{% block container %}
+    {{ form_start(form) }}
+    <div class="text-center">
+            {{ form_row(form.name) }}
+            {{ form_row(form.origin) }}
+            {{ form_row(form.city) }}
+            {{ form_row(form.startYear) }}
+            {{ form_row(form.separationYear) }}
+            {{ form_row(form.founders) }}
+            {{ form_row(form.members) }}
+            {{ form_row(form.musicalStyle) }}
+            {{ form_row(form.introduction) }}
+    </div>
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <a href="{{ path('app_band_index') }}" class="btn btn-danger">Annuler</a>
+        <button type="submit" class="btn btn-success">Sauvegarder</button>
+    </div>
+    {{ form_end(form) }}
+{% endblock %}

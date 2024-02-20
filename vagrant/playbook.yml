@@ -1,0 +1,267 @@
+-   hosts: default
+    become: yes
+    vars:
+        mysql_root_password: 1234
+        ansible_python_interpreter: python3
+    tasks:
+        -   name: Update system
+            apt:
+                update_cache: yes
+                upgrade: yes
+                force_apt_get: yes
+
+        -   name: Check if locale exist
+            locale_gen:
+                name: fr_FR.UTF-8
+                state: present
+
+        -   name: Set default locale
+            command: localectl set-locale LANG=fr_FR.utf8
+
+        -   name: Update login home folder
+            lineinfile:
+                path: /home/vagrant/.profile
+                line: 'cd /var/www/'
+
+        -   name: Install tools
+            apt:
+                name: "{{ item }}"
+                update_cache: yes
+                state: latest
+            loop:
+                - apt-transport-https
+                - lsb-release
+                - ca-certificates
+                - git
+                - curl
+                - unzip
+                - supervisor
+                - jpegoptim
+                - pngquant
+                - webp
+
+        -   name: Install Nginx
+            apt:
+                name: nginx
+                force_apt_get: yes
+                update_cache: yes
+                state: latest
+
+        -   name: Add sury repository key
+            apt_key:
+                url: https://packages.sury.org/php/apt.gpg
+                state: present
+
+        -   name: Add sury repository
+            apt_repository:
+                repo: deb https://packages.sury.org/php/ bullseye main
+                state: present
+
+        -   name: Add nodejs apt key
+            apt_key:
+                url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+                state: present
+
+        -   name: Add nodejs 18.x ppa for apt repo
+            apt_repository:
+                repo: deb https://deb.nodesource.com/node_18.x bullseye main
+                state: present
+
+        -   name: Install PHP 8.2
+            apt:
+                name: "{{ item }}"
+                update_cache: yes
+                install_recommends: no
+                state: latest
+            loop:
+                - php8.2
+                - php8.2-cli
+                - php8.2-bcmath
+                - php8.2-curl
+                - php8.2-gd
+                - php8.2-dom
+                - php8.2-intl
+                - php8.2-gmp
+                - php8.2-mysql
+                - php8.2-xml
+                - php8.2-soap
+                - php8.2-apcu
+                - php8.2-opcache
+                - php8.2-readline
+                - php8.2-xmlrpc
+                - php8.2-mbstring
+                - php8.2-fpm
+                - php8.2-zip
+
+        -   name: Update PHP configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/php.ini
+                regexp: '^#?post_max_size'
+                line: "post_max_size = 100M"
+
+        -   name: Update PHP configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/php.ini
+                regexp: '^#?upload_max_filesize'
+                line: "upload_max_filesize = 100M"
+
+        -   name: Update PHP configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/php.ini
+                regexp: '^#?date.timezone'
+                line: "date.timezone = Europe/Paris"
+
+        -   name: Update PHP configuration
+            lineinfile:
+                path: /etc/php/8.2/cli/php.ini
+                regexp: '^#?date.timezone'
+                line: "date.timezone = Europe/Paris"
+
+        -   name: Update PHP configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/php.ini
+                regexp: '^#?memory_limit'
+                line: "memory_limit = 512M"
+
+        -   name: Update PHP FPM pool configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/pool.d/www.conf
+                regexp: '^#?user'
+                line: "user = vagrant"
+
+        -   name: Update PHP FPM pool configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/pool.d/www.conf
+                regexp: '^#?group'
+                line: "group = vagrant"
+
+        -   name: Update PHP FPM pool configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/pool.d/www.conf
+                regexp: '^#?listen ='
+                line: "listen = 127.0.0.1:9000"
+
+        -   name: Update PHP FPM pool configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/pool.d/www.conf
+                regexp: '^#?listen.owner'
+                line: "listen.owner = vagrant"
+
+        -   name: Update PHP FPM pool configuration
+            lineinfile:
+                path: /etc/php/8.2/fpm/pool.d/www.conf
+                regexp: '^#?listen.group'
+                line: "listen.group = vagrant"
+
+        -   name: Restart PHP-FPM
+            service:
+                name: php8.2-fpm
+                state: restarted
+
+        -   name: Install Composer
+            include_role:
+                name: geerlingguy.composer
+
+        -   name: Install MySQL
+            include_role:
+                name: geerlingguy.mysql
+            vars:
+                mysql_config_include_files:
+                    - { src: mysql/custom.cnf, force: true }
+
+        -   name: Update access for root at PhpMyAdmin
+            command: mysql -u root -p"{{ mysql_root_password }}" mysql -e "RENAME USER 'root'@'localhost' TO 'root'@'%'; flush privileges;"
+
+        -   name: Remove useless files
+            file:
+                path: /var/www/html
+                state: absent
+
+        -   name: Remove useless files
+            file:
+                path: /etc/nginx/sites-enabled/default
+                state: absent
+
+        -   name: Create certificates directory
+            file:
+                path: /etc/nginx/ssl
+                state: directory
+                mode: '0755'
+
+        -   name: Move certicate key file
+            copy:
+                src: cert/ml.key
+                dest: /etc/ssl/ml.key
+
+        -   name: Move certicate file
+            copy:
+                src: cert/ml.crt
+                dest: /etc/ssl/ml.crt
+
+        -   name: Download PhpMyAdmin
+            get_url:
+                url: https://files.phpmyadmin.net/phpMyAdmin/5.2.0/phpMyAdmin-5.2.0-all-languages.zip
+                dest: /tmp/phpmyadmin.zip
+
+        -   name: Unzip PhpMyAdmin
+            unarchive:
+                src: /tmp/phpmyadmin.zip
+                dest: /tmp/
+                remote_src: yes
+
+        -   name: Create PhpMyAdmin directory
+            file:
+                path: /usr/share/phpmyadmin/
+                state: directory
+                mode: '0755'
+
+        -   name: Move PhpMyAdmin files
+            copy:
+                src: /tmp/phpMyAdmin-5.2.0-all-languages/
+                dest: /usr/share/phpmyadmin/
+                remote_src: yes
+
+        -   name: Create PhpMyAdmin temp directory
+            file:
+                path: /var/lib/phpmyadmin/tmp/
+                state: directory
+                recurse: yes
+                owner: www-data
+                group: www-data
+                mode: '0777'
+
+        -   name: Create configuration file
+            copy:
+                src: phpmyadmin/config.inc.php
+                dest: /usr/share/phpmyadmin/config.inc.php
+
+        -   name: Create Project Nginx vhost
+            copy:
+                src: nginx/project.conf
+                dest: /etc/nginx/sites-available/project
+
+        -   name: Enable Project Nginx vhost
+            file:
+                src: /etc/nginx/sites-available/project
+                dest: /etc/nginx/sites-enabled/project
+                state: link
+
+        -   name: Restart Nginx
+            service:
+                name: nginx
+                state: restarted
+
+        -   name: Restart MySQL
+            service:
+                name: mysql
+                state: restarted
+
+        - name: Install NodeJS 18.x
+          apt:
+              update_cache: yes
+              name: nodejs
+              state: present
+
+        - name: NPM install
+          npm:
+              path: /var/www

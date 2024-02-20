@@ -1,0 +1,22 @@
+App\Entity\Band:
+    attributes:
+        id:
+            groups: ['api_band_index']
+        name:
+            groups: ['api_band_index']
+        origin:
+            groups: ['api_band_index']
+        city:
+            groups: ['api_band_index']
+        startYear:
+            groups: ['api_band_index']
+        separationYear:
+            groups: ['api_band_index']
+        founders:
+            groups: ['api_band_index']
+        members:
+            groups: ['api_band_index']
+        musicalStyle:
+            groups: ['api_band_index']
+        introduction:
+            groups: ['api_band_index']
